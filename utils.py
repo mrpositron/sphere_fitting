@@ -22,16 +22,32 @@ def interleave(tensors_arr, hyp_count):
 def sample_from_probs(input, probs, min_set):
     # input: [B * hyp_count, N, D]
     # probs: [B * hyp_count, N]	
-    sampledIndices = input.multinomial(min_set, replacement = False)
+    sampledIndices = probs.multinomial(min_set, replacement = False)
     sampledValues =  batched_index_select(input, 1, sampledIndices)
 
     # sampledValues: [B * hyp_count, min_set, D]
     # sampledIndices: [B * hyp_count, min_set]
     return [sampledIndices, sampledValues]
 
+def sphere_fitting(point_cloud, weights):
+	# point_cloud: [B, N, D]
+	# weights: [B, N]
+
+	A =  2 * (-point_cloud + ((point_cloud * weights.unsqueeze(2)).sum(dim = 1) / weights.sum(dim = 1).unsqueeze(1)  ).unsqueeze(1))
+	b =  (-(point_cloud ** 2).sum(dim = 2) + ( ((((point_cloud ** 2).sum(dim = 2) * weights)).sum(dim = 1)) /(weights.sum(dim = 1))).unsqueeze(1))
+
+	AtA = torch.bmm(A.transpose(1, 2), A)
+	Atb = torch.bmm(A.transpose(1, 2), b.unsqueeze(2))
+
+	c = torch.linalg.solve(AtA, Atb).squeeze(2).unsqueeze(1)
+	r = torch.sqrt( (((point_cloud - c)**2).sum(dim = 2) * weights).sum(dim = 1) / (weights.sum(dim = 1)) )
+	
+	c = c.squeeze(1)
+	r = r.unsqueeze(1)
+	return c, r
 
 @torch.no_grad()
-def fit_sphere(point_cloud, probs, thresh, hyp_count, gradients = None):
+def fit_sphere(point_cloud, probs, thresh, hyp_count, gradients = None, epsilon = 1e-6):
     B, N, D = point_cloud.shape
     # minimal set
     min_set = 4
@@ -60,10 +76,10 @@ def fit_sphere(point_cloud, probs, thresh, hyp_count, gradients = None):
         matrix = torch.cat((temp[:, :, :i], temp[:, :, i+1:]), dim = 2)
         sub_deter.append(torch.linalg.det(matrix))
     del temp
-    a = sub_deter[1]/(2 * sub_deter[0] + 1e-6)
-    b = - sub_deter[2]/(2 * sub_deter[0] + 1e-6)
-    c = sub_deter[3] / (2 * sub_deter[0] + 1e-6)
-    r = torch.sqrt( (a**2 + b**2 + c**2 - (sub_deter[4]/sub_deter[0])))
+    a = sub_deter[1]/(2 * sub_deter[0] + epsilon)
+    b = - sub_deter[2]/(2 * sub_deter[0] + epsilon)
+    c = sub_deter[3] / (2 * sub_deter[0] + epsilon)
+    r = torch.sqrt( (a**2 + b**2 + c**2 - (sub_deter[4]/ (sub_deter[0] + epsilon) )))
 
     # 2. Calculate inliers
     # 2.1. Calculate the distance from a sphere
@@ -91,10 +107,8 @@ def fit_sphere(point_cloud, probs, thresh, hyp_count, gradients = None):
     #hypotheses = sphere_fitting(point_cloud, indices)
 
     parameters = {}
-    sphere_center, sphere_radius_squared = weighted_sphere_fitting(point_cloud, indices)
+    sphere_center, sphere_radius = sphere_fitting(point_cloud, indices)
     parameters['sphere_center'] = sphere_center
-    parameters['sphere_radius_squared'] = sphere_radius_squared
-
-    #hypotheses = torch.cat((sphere_center, sqrt_safe(r_sqr).unsqueeze(1)), dim = 1)
+    parameters['sphere_radius'] = sphere_radius
 
     return maxInlierCnt.float(), parameters, indices
