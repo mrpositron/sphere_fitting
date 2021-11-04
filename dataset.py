@@ -38,7 +38,7 @@ def create_sphere(num_inliers, num_outliers, batch_size = 32):
     
 
     output = {
-        'xyz_noise': xyz_noise,
+        'xyz_noise': xyz_noise.float(),
         'xyz_gt': xyz_gt,
         'xyz_gt_labels': xyz_gt_labels,
         'gt_parameters': gt_parameters
@@ -53,16 +53,15 @@ class SyntheticDataset(Dataset):
         self.xyz_gt_full = []
         self.xyz_gt_labels_full = []
 
-        if state == 'train':
-            num_inliers = int (0.7 * num_points)
-            num_outliers = num_points - num_inliers
-            while size > 0:
-                batch_size = min(100, size)
-                output = create_sphere(num_inliers, num_outliers, batch_size = batch_size)
-                self.xyz_noise_full.append(output['xyz_noise'])
-                self.xyz_gt_full.append(output['xyz_gt'])
-                self.xyz_gt_labels_full.append(output['xyz_gt_labels'])
-                size -= batch_size
+        num_inliers = int (0.5 * num_points) if state == 'train' else int (0.3 * num_points)
+        num_outliers = num_points - num_inliers
+        while size > 0:
+            batch_size = min(100, size)
+            output = create_sphere(num_inliers, num_outliers, batch_size = batch_size)
+            self.xyz_noise_full.append(output['xyz_noise'])
+            self.xyz_gt_full.append(output['xyz_gt'])
+            self.xyz_gt_labels_full.append(output['xyz_gt_labels'])
+            size -= batch_size
 
         self.xyz_noise_full = torch.cat(self.xyz_noise_full, dim = 0)
         self.xyz_gt_full = torch.cat(self.xyz_gt_full, dim = 0)

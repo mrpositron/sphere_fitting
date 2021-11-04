@@ -54,15 +54,13 @@ class PyTorchPipeline:
 
         
         grads = []
-
         distLosses = []
-
 
         for k in range(self.K[state]):
             gradients = torch.zeros(xyz_noise.shape[0], xyz_noise.shape[1]).to(self.device) if state == "train" else None
             _, parameters, indices = fit_sphere(xyz_noise, prob, self.threshold[state], self.hyp_count[state], gradients)
 
-            distLoss = calculate_error(xyz_gt, parameters).mean(dim = 1)
+            distLoss = calculate_error(xyz_gt, parameters)
             distLosses.append(distLoss)
 
             if state == "train":
@@ -105,9 +103,9 @@ class PyTorchPipeline:
 
             xyz_noise = xyz_noise.to(self.device)
             xyz_gt = xyz_gt.to(self.device)        
-            pred_num_inliers, hypotheses, indices = fit_sphere(xyz_noise, probabilities, self.threshold[state], self.hyp_count[state])
+            pred_num_inliers, parameters, indices = fit_sphere(xyz_noise, probabilities, self.threshold[state], self.hyp_count[state])
 
-            loss = calculate_error(xyz_gt, hypotheses)
+            loss = calculate_error(xyz_gt, parameters)
 
             cum_loss += loss.sum().item()
         
@@ -137,11 +135,11 @@ class PyTorchPipeline:
                 print()
                 print(f"TRAIN || Distance Loss: {round(cum_dist_loss/total_cnt, 5)}")
                 
-            val_dist_loss = self.check("val")
-            if val_dist_loss < min_loss:
-                min_loss = val_dist_loss
-                print("Best model is saved!")
-                self.save(path2save)
+            # val_dist_loss = self.check("val")
+            # if val_dist_loss < min_loss:
+            #     min_loss = val_dist_loss
+            #     print("Best model is saved!")
+            #     self.save(path2save)
         
 
         

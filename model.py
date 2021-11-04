@@ -4,7 +4,6 @@ import torch.nn.parallel
 import torch.utils.data
 import torch.nn.functional as F
 
-
 class PointNetEncoder(nn.Module):
         def __init__(self, global_feat=True, channel=3, conv_bias = False):
                 super(PointNetEncoder, self).__init__()
@@ -58,3 +57,23 @@ class PointNet(nn.Module):
                 x = x.transpose(1, 2)
                 
                 return x
+
+
+if __name__ == '__main__':
+    from dataset import SyntheticDataset
+    from torch.utils.data import DataLoader
+
+    model = PointNet(num_class=1)
+    
+    dataloader = DataLoader(
+        SyntheticDataset('train', 128, 1024),
+	    batch_size= 32,
+	    num_workers= 0,
+	    shuffle = True,
+	)
+
+    xyz_noise, xyz_gt_labels, xyz_gt = next(iter(dataloader))
+    xyz_noise = xyz_noise.transpose(1, 2).float()
+    print(xyz_noise.shape)
+    output = model(xyz_noise)
+    print(output.shape)

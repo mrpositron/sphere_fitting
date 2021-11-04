@@ -30,21 +30,20 @@ def sample_from_probs(input, probs, min_set):
     return [sampledIndices, sampledValues]
 
 def sphere_fitting(point_cloud, weights):
-	# point_cloud: [B, N, D]
-	# weights: [B, N]
+    # point_cloud: [B, N, D]
+    # weights: [B, N]
+    A =  2 * (-point_cloud + ((point_cloud * weights.unsqueeze(2)).sum(dim = 1) / weights.sum(dim = 1).unsqueeze(1)  ).unsqueeze(1))
+    b =  (-(point_cloud ** 2).sum(dim = 2) + ( ((((point_cloud ** 2).sum(dim = 2) * weights)).sum(dim = 1)) /(weights.sum(dim = 1))).unsqueeze(1))
 
-	A =  2 * (-point_cloud + ((point_cloud * weights.unsqueeze(2)).sum(dim = 1) / weights.sum(dim = 1).unsqueeze(1)  ).unsqueeze(1))
-	b =  (-(point_cloud ** 2).sum(dim = 2) + ( ((((point_cloud ** 2).sum(dim = 2) * weights)).sum(dim = 1)) /(weights.sum(dim = 1))).unsqueeze(1))
+    AtA = torch.bmm(A.transpose(1, 2), A)
+    Atb = torch.bmm(A.transpose(1, 2), b.unsqueeze(2))
 
-	AtA = torch.bmm(A.transpose(1, 2), A)
-	Atb = torch.bmm(A.transpose(1, 2), b.unsqueeze(2))
-
-	c = torch.linalg.solve(AtA, Atb).squeeze(2).unsqueeze(1)
-	r = torch.sqrt( (((point_cloud - c)**2).sum(dim = 2) * weights).sum(dim = 1) / (weights.sum(dim = 1)) )
-	
-	c = c.squeeze(1)
-	r = r.unsqueeze(1)
-	return c, r
+    c = torch.linalg.solve(AtA, Atb).squeeze(2).unsqueeze(1)
+    r = torch.sqrt( (((point_cloud - c)**2).sum(dim = 2) * weights).sum(dim = 1) / (weights.sum(dim = 1)) )
+    
+    c = c.squeeze(1)
+    r = r.unsqueeze(1)
+    return c, r
 
 @torch.no_grad()
 def fit_sphere(point_cloud, probs, thresh, hyp_count, gradients = None, epsilon = 1e-6):
@@ -106,9 +105,30 @@ def fit_sphere(point_cloud, probs, thresh, hyp_count, gradients = None, epsilon 
     
     #hypotheses = sphere_fitting(point_cloud, indices)
 
+
     parameters = {}
     sphere_center, sphere_radius = sphere_fitting(point_cloud, indices)
     parameters['sphere_center'] = sphere_center
     parameters['sphere_radius'] = sphere_radius
 
     return maxInlierCnt.float(), parameters, indices
+
+def calculate_error(gt_point_cloud, parameters):
+    # parameters: {'sphere_center': [B, D], 'sphere_radius': [B]}
+    # gt_point_cloud: [N, D]
+    a = parameters['sphere_center'][:, 0]
+    b = parameters['sphere_center'][:, 1]
+    c = parameters['sphere_center'][:, 2]
+    r = parameters['sphere_radius']
+
+    # print shapes for tensors a, b, c, r
+    # print(a.shape, b.shape, c.shape, r.shape)
+
+    # distance is computed as following:
+    # dist_i = (((a - x_i)^2 + (b - y_i)^2 + (c - z_i)^2)^(1/2) - r)^2
+    dist = ( torch.sqrt((a.unsqueeze(1) - gt_point_cloud[:, :, 0]) ** 2 + 
+        (b.unsqueeze(1) - gt_point_cloud[:, :, 1]) ** 2 + 
+        (c.unsqueeze(1) - gt_point_cloud[:, :, 2])**2) - r) ** 2
+    # then we are taking mean of all losses
+    # dist = ((dist_0 + ... + dist_N)/ N)^(1/2)
+    return torch.sqrt(dist.mean(dim = 1))
