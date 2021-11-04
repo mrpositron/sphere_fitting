@@ -104,5 +104,6 @@ if __name__ == "__main__":
     for i in range(1000):
         l, _ = ptpl.run_pn_ngransac(batch, "train") 
         print(l.mean().item())
+        
     #l = ptpl.run_ransac("val")
 
