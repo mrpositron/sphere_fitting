@@ -1,3 +1,4 @@
+from platform import dist
 import torch
 import torch.nn as nn
 import torch.nn.functional as F
@@ -67,21 +68,22 @@ class PyTorchPipeline:
                 grads.append(gradients)
         
         distLosses = torch.stack(distLosses, dim = 1)	
-
-        
         loss_temp = distLosses.mean(dim = 1)
 
         losses = distLosses
+
         if state == "train":
             losses = (losses - losses.mean(dim = 1).unsqueeze(1)).unsqueeze(2)
 
             grads = torch.stack(grads, dim = 2).transpose(1, 2)
+
             grads = (grads * losses).mean(dim = 1)
 
             torch.autograd.backward((log_prob), (grads))
             self.optimizer.step() 
 
         return loss_temp, output_data
+
 
     def run_ransac(self, state):
         cum_loss = .0

@@ -7,20 +7,21 @@ from torch.utils.data import Dataset, DataLoader
 from dataset import SyntheticDataset
 
 
-from model import PointNet
+from model import PointNet2SemSegMSG, PointNet
 from ptpl import PyTorchPipeline
 
+import numpy as np
 
 if __name__ == "__main__":
 
     parser = argparse.ArgumentParser()
 
     parser.add_argument('--gpu_num', default=-1, type=int)
-    parser.add_argument('--num_epochs', default=10, type=int)
+    parser.add_argument('--num_epochs', default=100, type=int)
     args = parser.parse_args()
 
     hparams = {
-        'batch_size' : 64,
+        'batch_size' : 32,
         'num_workers': 8,
         'gpu_num' : args.gpu_num,
         'num_epochs' : args.num_epochs,
@@ -34,14 +35,14 @@ if __name__ == "__main__":
             'val': 512,
         },
         'threshold': {
-            'train': 1/128,
-            'val': 1/256, 
+            'train': 1/512,
+            'val': 1/16, 
             },
         'lr': 1e-3,
         'path2save': './checkpoint.pt',
     }
 
-    num_points = 1024
+    num_points = 2048
     train_size = 800
     test_size = val_size = 100
     # define training dataloader
@@ -76,9 +77,9 @@ if __name__ == "__main__":
     optimizer = torch.optim.Adam(
         model.parameters(),
         lr=hparams['lr'],
-        betas=(0.9, 0.999),
-        eps=1e-08,
-        weight_decay = 1e-4,
+        # betas=(0.9, 0.999),
+        # eps=1e-08,
+        # weight_decay = 1e-4,
     )
 
     ptpl = PyTorchPipeline(
@@ -97,13 +98,19 @@ if __name__ == "__main__":
         hparams = hparams,
     )
 
-    #ptpl.train(num_epochs= hparams['num_epochs'], path2save =  hparams['path2save'])
-    # 
+    # ptpl.train(num_epochs= hparams['num_epochs'], path2save =  hparams['path2save'])
+    
     batch = next(iter(train_dataloader))
+    # l, _ = ptpl.run_pn_ngransac(batch, "train")
+    # xyz_noise = torch.from_numpy(np.load('xyz_noise.npy'))
+    # xyz_gt_label = torch.from_numpy(np.load('xyz_gt_label.npy'))
+    # xyz_gt = torch.from_numpy(np.load('xyz_gt.npy'))
+
+    # batch = [ xyz_noise, xyz_gt_label, xyz_gt ]
 
     for i in range(1000):
-        l, _ = ptpl.run_pn_ngransac(batch, "train") 
-        print(l.mean().item())
+        l, _ = ptpl.run_pn_ngransac(batch, "train")
+        print(l.mean().item()) 
         
-    #l = ptpl.run_ransac("val")
+    # l = ptpl.run_ransac("train")
 
