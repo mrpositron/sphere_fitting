@@ -2,8 +2,13 @@ import torch
 import numpy as np
 
 def create_sphere(num_points, batch_size = 32):
-    # sphere is define by a coordinates of a sphere senter x0, y0, z0
-    # and by the radius r
+    """ Create a sphere with num_points points.
+    Args:
+        num_points: number of points in the sphere
+        batch_size: batch size
+    Returns:
+        xyz_gt: Tensor of size (batch_size, num_points, 3)
+    """
 
     xyz0 = torch.rand(batch_size, 3)
     r = 0.5 + torch.rand(batch_size, 1)
@@ -21,6 +26,13 @@ def create_sphere(num_points, batch_size = 32):
     return xyz_gt
 
 def create_plane(num_points, batch_size = 32):
+    """ Create a plane with num_points points.
+    Args:
+        num_points: number of points in the plane
+        batch_size: batch size
+    Returns:
+        xyz_gt: Tensor of size (batch_size, num_points, 3)
+    """
     x = torch.rand(batch_size, num_points, 1) - 2 * torch.rand(batch_size, num_points, 1)
     y = torch.rand(batch_size, num_points, 1) - 2 * torch.rand(batch_size, num_points, 1)
 
@@ -35,7 +47,14 @@ def create_plane(num_points, batch_size = 32):
     return xyz_gt
 
 def create_shape(num_inliers, num_outliers, batch_size = 32):
-    
+    """ Create a shape with num_inliers inliers and num_outliers outliers.
+    Args:
+        num_inliers: number of inliers
+        num_outliers: number of outliers
+        batch_size: batch size
+    Returns:
+        xyz_noise: Tensor of size (batch_size, num_inliers + num_outliers, 3)
+    """
     xyz_gt_sphere = create_sphere(num_inliers, batch_size= batch_size)
     xyz_gt_plane = create_plane(num_outliers, batch_size= batch_size)
 
