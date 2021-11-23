@@ -58,7 +58,7 @@ class PointNet(nn.Module):
                 
                 return x
 
-from model_utils import *
+from .utils import *
 
 class PointNet2SemSegMSG(torch.nn.Module):
     def __init__(self, num_segments = 1):

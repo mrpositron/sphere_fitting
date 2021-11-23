@@ -1,4 +1,3 @@
-from platform import dist
 import torch
 import torch.nn as nn
 import torch.nn.functional as F
@@ -7,7 +6,7 @@ import torch.utils.data as data
 import numpy as np
 from tqdm import tqdm
 
-from utils import *
+from .utils import *
 
 class PyTorchPipeline:
     def __init__(self, project_name, configs, hparams):

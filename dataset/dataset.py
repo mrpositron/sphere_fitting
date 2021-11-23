@@ -3,11 +3,10 @@ from torch.utils.data import Dataset, DataLoader
 
 import numpy as np
 
-from dataset_utils import create_shape
+from .utils import create_shape
 
 
 class SyntheticDataset(Dataset):
-
     def __init__(self, state, size, num_points):
         self.xyz_noise_full = []
         self.xyz_gt_full = []

@@ -4,11 +4,11 @@ import argparse
 import torch
 from torch.utils.data import Dataset, DataLoader
 
-from dataset import SyntheticDataset
+from dataset.dataset import SyntheticDataset
 
 
-from model import PointNet2SemSegMSG, PointNet
-from ptpl import PyTorchPipeline
+from model.model import PointNet2SemSegMSG, PointNet
+from pytorch_pipeline.ptpl import PyTorchPipeline
 
 import numpy as np
 
