@@ -1,3 +1,8 @@
+"""
+model.py 
+- This file contains the Model class for PointNet and PointNet++
+"""
+
 import torch
 import torch.nn as nn
 import torch.nn.parallel

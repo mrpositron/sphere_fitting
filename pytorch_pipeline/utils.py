@@ -1,3 +1,7 @@
+"""
+utils.py 
+- This file contains functions required for NG-RANSAC
+"""
 import torch
 import numpy as np
 from typing import List
@@ -148,9 +152,6 @@ def fit_sphere(correspondences, probabilities, thresh, hyp_count, gradients = No
     
     parameters = {}
     c, r = sphere_fitting(correspondences, indices)
-    a = c[:, 0]
-    #r = torch.sqrt(r)
-    # print("A r", (a**2).mean(), r[0])
     parameters['sphere_center'] = c
     parameters['sphere_radius'] = r
 

@@ -1,3 +1,8 @@
+"""
+ptpl.py
+- This file contains the PytorchPipeline class, which is the main class for the training and testing of the model.
+"""
+
 import torch
 import torch.nn as nn
 import torch.nn.functional as F

@@ -1,3 +1,8 @@
+"""
+utils.py 
+- This file contains helper functions for the PointNet++ model.
+"""
+
 from typing import List, Optional, Tuple
 
 import torch
