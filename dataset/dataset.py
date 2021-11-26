@@ -15,7 +15,7 @@ class SyntheticDataset(Dataset):
         self.xyz_gt_full = []
         self.xyz_gt_labels_full = []
 
-        num_inliers = int (0.3 * num_points) if state == 'train' else int (0.2 * num_points)
+        num_inliers = int (0.3 * num_points) if state == 'train' else int (0.1 * num_points)
         num_outliers = num_points - num_inliers
         while size > 0:
             batch_size = min(100, size)
