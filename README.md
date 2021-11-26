@@ -32,7 +32,7 @@ The task is to find the best fitting sphere to the given set of points.
 
 ## Method 
 
-Neural Network learns a probability distribution over the points in the point cloud, and then probability distribution is used to guide the RANSAC algorithm.
+Neural Network learns a probability distribution over the points in the point cloud, and then probability distribution is used to guide the RANSAC algorithm. The whole process is end-to-end trainable, where we can backpropagate the error and update the weights of the network through the RANSAC.
 
 ## Dataset 
 
