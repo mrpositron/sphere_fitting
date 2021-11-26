@@ -4,11 +4,7 @@ ptpl.py
 """
 
 import torch
-import torch.nn as nn
 import torch.nn.functional as F
-import torch.utils.data as data
-
-import numpy as np
 from tqdm import tqdm
 
 from .utils import *
@@ -32,6 +28,7 @@ class PyTorchPipeline:
         self.test_dataloader = self.configs['test_dataloader'] if 'test_dataloader' in self.configs else None
 
         # et cetera
+        
         self.print_logs = self.configs["print_logs"]
         self.K = hparams['K']
         self.hyp_count = hparams['hyp_count']
@@ -114,15 +111,19 @@ class PyTorchPipeline:
             loss = calculate_error(xyz_gt, parameters)
 
             cum_loss += loss.sum().item()
-        
-        print(f"Distance loss: {cum_loss/total_cnt}")
-        return cum_loss
+        return cum_loss/total_cnt
 
     def train(self, num_epochs = None, path2save = None):
         
         min_loss = 1000
-
+        val_loss = None
+        train_loss = None
         for epoch in range(num_epochs):
+            print()
+            print("=" * 100)
+            print(f"Epoch: {epoch + 1}/{num_epochs}")
+            print("=" * 100)
+
             self.model.train()
             total_cnt = 0
             cum_dist_loss = .0
@@ -133,39 +134,37 @@ class PyTorchPipeline:
                 distance_loss, output_data = self.run_pn_ngransac(batch, state = "train")
                 cum_dist_loss += distance_loss.sum().item()
 
+            train_loss = cum_dist_loss/total_cnt                
+            val_dist_loss = self.test("val")
+            if val_dist_loss < min_loss:
+                min_loss = val_dist_loss
+                print("Best model is saved!")
+                val_loss = val_dist_loss
+                self.save(path2save)
+
             if self.print_logs:
-                print()
-                print("=" * 100)
-                print(f"Epoch: {epoch + 1}/{num_epochs}")
-                print("=" * 100)
-                print()
                 print(f"TRAIN || Distance Loss: {round(cum_dist_loss/total_cnt, 5)}")
-                
-            # val_dist_loss = self.check("val")
-            # if val_dist_loss < min_loss:
-            #     min_loss = val_dist_loss
-            #     print("Best model is saved!")
-            #     self.save(path2save)
-        
+                print(f"VAL   || Distance Loss: {round(val_dist_loss, 5)}")
+
+        return train_loss, val_loss
+            
+
 
         
     @torch.no_grad()
-    def check(self, state):
+    def test(self, state):
         self.model.eval()
 
         total_cnt = 0
         cum_dist_loss = .0
 
         dataloader = self.test_dataloader if state == 'test' else self.val_dataloader
-        for _, batch in enumerate(dataloader):
+        for _, batch in enumerate(tqdm(dataloader)):
             batch_size = batch[0].shape[0]
             total_cnt += batch_size
 
             distance_loss, output_data = self.run_pn_ngransac(batch, state)
             cum_dist_loss += distance_loss.sum().item()
-
-        if self.print_logs:
-            print(f"{state.upper()} || Distance Loss: {round(cum_dist_loss/total_cnt, 5)}")
 
         return cum_dist_loss/total_cnt
 

@@ -2,11 +2,10 @@
 main.py 
 - This is the main file for the project.
 """
-from tqdm import tqdm
 import argparse
 
 import torch
-from torch.utils.data import Dataset, DataLoader
+from torch.utils.data import DataLoader
 
 from dataset.dataset import SyntheticDataset
 
@@ -36,11 +35,13 @@ if __name__ == "__main__":
         },
         'hyp_count': {
             'train': 64,
-            'val': 512,
+            'val': 64,
+            'test': 64, # it is sometimes good to allow more hypotheses for test
         },
         'threshold': {
-            'train': 1/512,
-            'val': 1/16, 
+            'train': 1/32,
+            'val': 1/32, 
+            'test': 1/32,
             },
         'lr': 1e-3,
         'path2save': './checkpoint.pt',
@@ -81,9 +82,9 @@ if __name__ == "__main__":
     optimizer = torch.optim.Adam(
         model.parameters(),
         lr=hparams['lr'],
-        # betas=(0.9, 0.999),
-        # eps=1e-08,
-        # weight_decay = 1e-4,
+        betas=(0.9, 0.999),
+        eps=1e-08,
+        weight_decay = 1e-4,
     )
 
     ptpl = PyTorchPipeline(
@@ -97,24 +98,26 @@ if __name__ == "__main__":
         'test_dataloader': test_dataloader,
         'print_logs': True,
         'model': model,
-        'wb': False,
         },
         hparams = hparams,
     )
-
-    # ptpl.train(num_epochs= hparams['num_epochs'], path2save =  hparams['path2save'])
     
-    batch = next(iter(train_dataloader))
-    # l, _ = ptpl.run_pn_ngransac(batch, "train")
-    # xyz_noise = torch.from_numpy(np.load('xyz_noise.npy'))
-    # xyz_gt_label = torch.from_numpy(np.load('xyz_gt_label.npy'))
-    # xyz_gt = torch.from_numpy(np.load('xyz_gt.npy'))
+    ransac_losses = {
+        'train': ptpl.run_ransac("train"),
+        'val': ptpl.run_ransac("val"),
+        'test': ptpl.run_ransac("test"),
+    }
+    print(f"RANSAC losses:")
+    print(f"TRAIN: {ransac_losses['train']} || VAL: {ransac_losses['val']} || TEST: {ransac_losses['test']} ")
+    print("=" * 100)
+    print()
 
-    # batch = [ xyz_noise, xyz_gt_label, xyz_gt ]
+    ngransac_losses = {}
+    ngransac_losses['train'], ngransac_losses['val'] = ptpl.train(num_epochs= hparams['num_epochs'], path2save =  hparams['path2save'])
+    
+    ptpl.load(hparams['path2save'])
+    ngransac_losses['test'] = ptpl.test("test")
 
-    for i in range(1000):
-        l, _ = ptpl.run_pn_ngransac(batch, "train")
-        print(l.mean().item()) 
-        
-    # l = ptpl.run_ransac("train")
-
+    print()
+    print(f"NGRANSAC losses:")
+    print(f"TRAIN: {ngransac_losses['train']} || VAL: {ngransac_losses['val']} || TEST: {ngransac_losses['test']} ")    
