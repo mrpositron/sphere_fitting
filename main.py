@@ -10,7 +10,7 @@ from torch.utils.data import DataLoader
 from dataset.dataset import SyntheticDataset
 
 
-from model.model import PointNet2SemSegMSG, PointNet
+from model.model import PointNet
 from pytorch_pipeline.ptpl import PyTorchPipeline
 
 import numpy as np
@@ -73,6 +73,7 @@ if __name__ == "__main__":
     )
 
     device = torch.device('cuda:' + str(args.gpu_num) if args.gpu_num > -1 else 'cpu')
+
     model = PointNet(1)
     model = model.to(device)
 
